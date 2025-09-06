@@ -31,7 +31,8 @@ internal record Book(Guid Id, string Title, string Author, string Genre, DateTim
 
     public static Book Generate()
     {
-        return new Book(Guid.NewGuid(), RandomString(),RandomString(), RandomString(), DateTime.Now, Random.Shared.Next(1,6));
+        // Genre parameter has it's content length set to one to make sure there are more duplicate genres
+        return new Book(Guid.NewGuid(), RandomString(),RandomString(), RandomString(1), DateTime.Now, Random.Shared.Next(1,6));
 
         string RandomString(int length = 2)
         {
@@ -44,5 +45,21 @@ internal record Book(Guid Id, string Title, string Author, string Genre, DateTim
             }
             return builder.ToString();
         }
+    }
+
+    public bool IsNotValidBook(out IResult? result)
+    {
+        // Validate the book object
+        var validationResults = new List<ValidationResult>();
+        var context = new ValidationContext(this);
+        var isValid = Validator.TryValidateObject(this, context, validationResults, true);
+
+        if (isValid)
+        {
+            result = null;
+            return false;
+        }
+        result = Results.BadRequest(validationResults);
+        return true;
     }
 }

@@ -9,8 +9,7 @@ internal class BookContext : DbContext
 
     public BookContext()
     {
-        const Environment.SpecialFolder folder = Environment.SpecialFolder.LocalApplicationData;
-        var path = Environment.GetFolderPath(folder);
+        var path = Path.GetTempPath();
         DbPath = Path.Join(path, "book.db");
     }
 

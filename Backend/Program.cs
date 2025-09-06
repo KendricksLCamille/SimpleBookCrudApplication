@@ -46,7 +46,7 @@ app.MapGet("/api/books/{id:guid}", async (Guid id) =>
 app.MapPost("/api/books", async (Book book) =>
 {
     await using var db = new BookContext();
-    if (IsNotValidBook(book, out var validationResult)) return Results.BadRequest(validationResult);
+    if (book.IsNotValidBook(out var validationResult)) return Results.BadRequest(validationResult);
     book.Id = Guid.NewGuid(); // Generate a new ID for the book.
     db.Books.Add(book);
     await db.SaveChangesAsync();
@@ -59,7 +59,7 @@ app.MapPost("/api/books", async (Book book) =>
 app.MapPut("/api/books/{id:guid}", async (Guid id, Book book) =>
 {
     await using var db = new BookContext();
-    if (IsNotValidBook(book, out var validationResult)) return Results.BadRequest(validationResult);
+    if (book.IsNotValidBook(out var validationResult)) return Results.BadRequest(validationResult);
     book.Id = id; // Update the ID of the book.
     db.Entry(book).State = EntityState.Modified;
     await db.SaveChangesAsync();
@@ -80,29 +80,21 @@ app.MapDelete("/api/books/{id:guid}", async (Guid id) =>
     }
 }).WithName("DeleteBook").WithDescription("Delete a book by ID");
 
+app.MapGet("/api/books/status", async () =>
+{
+    await using var db = new BookContext();
+    var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
+    return genreToBooksCount;
+}).WithName("GetBooksStatus").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
+
 await using var db = new BookContext();
 await db.Database.EnsureCreatedAsync();
 if (!await db.Books.AnyAsync())
 {
-    db.AddRange(Enumerable.Range(1, 25).Select(_ => Book.Generate()));
+    const int numberOfBooks = 100; // Ensures generating duplicate genres.
+    db.AddRange(Enumerable.Range(1, numberOfBooks).Select(_ => Book.Generate()));
 }
 await db.SaveChangesAsync();
 
 await app.RunAsync();
 return;
-
-bool IsNotValidBook(Book book, out IResult? result)
-{
-    // Validate the book object
-    var validationResults = new List<ValidationResult>();
-    var context = new ValidationContext(book);
-    var isValid = Validator.TryValidateObject(book, context, validationResults, true);
-
-    if (isValid)
-    {
-        result = null;
-        return false;
-    }
-    result = Results.BadRequest(validationResults);
-    return true;
-}
