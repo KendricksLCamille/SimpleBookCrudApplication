@@ -190,7 +190,7 @@ namespace Backend
         public async Task GetBooksStatus_ReturnsCorrectCountOfBooksByGenre()
         {
             // Arrange
-            var response = await _client.GetAsync("/api/books/status");
+            var response = await _client.GetAsync("/api/books/stats");
 
             // Act
             response.EnsureSuccessStatusCode();

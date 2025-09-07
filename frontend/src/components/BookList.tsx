@@ -39,13 +39,23 @@ export default function BookList(props: Readonly<{ setState: React.Dispatch<Reac
                     </thead>
                     <tbody>
                     {books.map((book) => (
-                        <tr key={book.id} onClick={() => setState({id: book.id})}>
+                        <tr key={book.id}>
                             <td>{book.title}</td>
                             <td>{book.author}</td>
-                            <td>{new Date(book.publishedDate).toLocaleDateString()}</td>
+                            <td>{new Date(book.publishedDate).toUTCString().slice(0, 17)}</td>
                             <td>{book.genre}</td>
                             <td>{book.rating.toFixed(0)}</td>
                             <td>
+                                <button
+                                    aria-label={`Edit ${book.title}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        (setState as React.Dispatch<React.SetStateAction<State>>)({ id: book.id } as unknown as State);
+                                    }}
+                                >
+                                    Edit
+                                </button>
+                                {' '}
                                 <button
                                     aria-label={`Delete ${book.title}`}
                                     onClick={async (e) => {
@@ -71,9 +81,10 @@ export default function BookList(props: Readonly<{ setState: React.Dispatch<Reac
                     </tbody>
                 </table>
             </div>
-            <div style={{marginTop: 16, textAlign: 'right'}}>
+            <div style={{marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <button aria-label="View Statistics" onClick={() => (setState as React.Dispatch<React.SetStateAction<State>>)("stats")}>View Statistics</button>
                 <button aria-label="Add New Book"
-                        onClick={() => (setState as React.Dispatch<React.SetStateAction<State>>)("create")}>Add
+                        onClick={() => (setState as React.Dispatch<React.SetStateAction<State>>)("create")}>Add New Book
                 </button>
             </div>
         </>

@@ -64,14 +64,14 @@ describe('BookList', () => {
     const row = within(table).getAllByRole('row')[1];
     const cells = within(row).getAllByRole('cell').map(td => td.textContent);
 
-    const formattedDate = new Date(book.publishedDate).toLocaleDateString();
+    const formattedDate = new Date(book.publishedDate).toUTCString().slice(0, 17);
     expect(cells).toEqual([
       'Test Book',
       'Test Author',
       formattedDate,
       'Test Genre',
       '5', // rating.toFixed(0)
-      'Delete',
+      'Edit Delete',
     ]);
 
     // Verify fetch was called with expected URL
@@ -108,7 +108,7 @@ describe('BookList', () => {
     expect(firstRowAuthor).toBe('Adam');
   });
 
-  it('invokes setState with the book id when a row is clicked', async () => {
+  it('does not invoke setState when a row is clicked; uses Edit button instead', async () => {
     const books = [
       { id: 'a', title: 'Alpha', author: 'Adam', genre: 'G', publishedDate: '2022-02-02', rating: 2 },
     ];
@@ -118,9 +118,14 @@ describe('BookList', () => {
     renderWithSetState(setStateSpy);
 
     const row = await screen.findByRole('row', { name: /Alpha/i });
-    // click the row
+    // click the row should do nothing
     (row as HTMLElement).click();
 
+    expect(setStateSpy).not.toHaveBeenCalled();
+
+    // Click Edit button triggers setState with id
+    const editBtn = within(row).getByRole('button', { name: /Edit/i });
+    (editBtn as HTMLElement).click();
     expect(setStateSpy).toHaveBeenCalledWith({ id: 'a' });
   });
 
@@ -147,7 +152,7 @@ it('deletes a book when Delete button is clicked without triggering row selectio
 
   // Wait for row
   const row = await screen.findByRole('row', { name: /To Delete/i });
-  const delBtn = within(row).getByRole('button', { name: /Delete/i });
+  const delBtn = within(row).getByRole('button', { name: 'Delete To Delete' });
 
   // Click delete
   (delBtn as HTMLElement).click();
@@ -164,7 +169,7 @@ it('deletes a book when Delete button is clicked without triggering row selectio
 });
 
 
-it('renders an Add New Book button below the scrollable table and navigates to create mode on click', async () => {
+it('renders buttons below the table to view stats and add new book; clicking navigates', async () => {
   const books = [
     { id: 'a', title: 'Alpha', author: 'Adam', genre: 'G', publishedDate: '2022-02-02', rating: 2 },
   ];
@@ -178,15 +183,21 @@ it('renders an Add New Book button below the scrollable table and navigates to c
   const table = await screen.findByRole('table');
   expect(table).toBeInTheDocument();
 
-  // The add button should be present
-  const addBtns = screen.getAllByRole('button', { name: 'Add New Book' });
-  expect(addBtns.length).toBeGreaterThan(0);
+  // The add and stats buttons should be present
+  const addBtns = await screen.findAllByText('Add New Book');
   const addBtn = addBtns[addBtns.length - 1] as HTMLElement;
+  const statsBtns = await screen.findAllByText('View Statistics');
+  const statsBtn = statsBtns[statsBtns.length - 1] as HTMLElement;
 
-  // Ensure the button is not inside the scrollable table container
+  // Ensure the buttons are not inside the scrollable table container
   expect(addBtn.closest('.table-container')).toBeNull();
+  expect(statsBtn.closest('.table-container')).toBeNull();
 
-  // Clicking should trigger setState with "create"
+  // Clicking add should trigger setState with "create"
   addBtn.click();
   expect(setStateSpy).toHaveBeenCalledWith('create');
+
+  // Clicking stats should trigger setState with "stats"
+  statsBtn.click();
+  expect(setStateSpy).toHaveBeenCalledWith('stats');
 });

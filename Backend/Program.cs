@@ -87,12 +87,12 @@ app.MapDelete("/api/books/{id:guid}", async (Guid id) =>
     return Results.NoContent();
 }).WithName("DeleteBook").WithDescription("Delete a book by ID");
 
-app.MapGet("/api/books/status", async () =>
+app.MapGet("/api/books/stats", async () =>
 {
     await using var db = new BookContext();
     var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
     return genreToBooksCount;
-}).WithName("GetBooksStatus").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
+}).WithName("GetBooksStats").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
 
 await using var db = new BookContext();
 await db.Database.EnsureCreatedAsync();
