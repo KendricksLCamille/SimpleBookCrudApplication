@@ -83,12 +83,15 @@ export default function Books({state, setState}: Readonly<{
         e.preventDefault();
         if (!isCreate) {
             updateBook(form).then(
-                () => alert(`${form.title} by ${form.author} updated successfully.`),
+                () => {
+                    alert('Book updated successfully');
+                    alert(`Updated book ${form.id}`);
+                },
                 () => alert('Failed to update book. Please try again later.')
             ).then(() => setState('browse'));
         } else {
             createBook(form).then(
-                () => alert(`${form.title} by ${form.author} created successfully.`),
+                () => alert(`Created new book ${form.title} by ${form.author}`),
                 () => alert('Failed to create new book. Please try again later.')
             ).then(() => setState('browse'));
         }
