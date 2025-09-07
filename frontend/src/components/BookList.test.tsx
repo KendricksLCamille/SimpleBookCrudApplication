@@ -162,3 +162,31 @@ it('deletes a book when Delete button is clicked without triggering row selectio
   // setState should not have been called by clicking delete button
   expect(setStateSpy).not.toHaveBeenCalled();
 });
+
+
+it('renders an Add New Book button below the scrollable table and navigates to create mode on click', async () => {
+  const books = [
+    { id: 'a', title: 'Alpha', author: 'Adam', genre: 'G', publishedDate: '2022-02-02', rating: 2 },
+  ];
+  fetchMock.mockResolvedValue(respWithJson(books));
+
+  const setStateSpy = vi.fn();
+  // Render the special wrapper that passes a function directly
+  renderWithSetState(setStateSpy);
+
+  // Wait for the table to render
+  const table = await screen.findByRole('table');
+  expect(table).toBeInTheDocument();
+
+  // The add button should be present
+  const addBtns = screen.getAllByRole('button', { name: 'Add New Book' });
+  expect(addBtns.length).toBeGreaterThan(0);
+  const addBtn = addBtns[addBtns.length - 1] as HTMLElement;
+
+  // Ensure the button is not inside the scrollable table container
+  expect(addBtn.closest('.table-container')).toBeNull();
+
+  // Clicking should trigger setState with "create"
+  addBtn.click();
+  expect(setStateSpy).toHaveBeenCalledWith('create');
+});
