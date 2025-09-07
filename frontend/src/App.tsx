@@ -1,7 +1,7 @@
 import './App.css'
 import BookList from '../src/components/BookList'
 import Books from '../src/components/Books'
-import Statistic from '../src/components/Statistic'
+import Statistic from '../src/components/Statistic2'
 import {useState} from "react";
 import type { State } from "./types.tsx";
 

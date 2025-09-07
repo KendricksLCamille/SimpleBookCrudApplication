@@ -11,6 +11,9 @@ export interface BookStats {
     [genre: string]: number;
 }
 
+const k:BookStats = {"p": 1}
+console.log(k["p"]); // 1
+
 export interface EditReadState{
     id: string;
 }
