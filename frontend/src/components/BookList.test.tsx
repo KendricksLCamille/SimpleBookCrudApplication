@@ -10,7 +10,18 @@ import BookList from './BookList';
 
 // Helpers to build mock fetch responses
 function respWithJson(jsonValue: unknown): Response {
-  return { json: async () => JSON.stringify(jsonValue) } as unknown as Response;
+  return { json: async () => jsonValue } as unknown as Response;
+}
+
+// Helper to render BookList with a custom setState function, matching the component's atypical signature
+function renderWithSetState(spy?: (s: { id: string }) => void) {
+  const setState = spy ?? vi.fn();
+  function Wrapper() {
+    // Call component directly to pass the function instead of React props object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return BookList(setState as any);
+  }
+  return { ...render(<Wrapper />), setState };
 }
 
 describe('BookList', () => {
@@ -23,9 +34,11 @@ describe('BookList', () => {
   });
 
   it('shows "Loading..." immediately on first render', () => {
-    // Do not set up fetch yet; we just assert the initial state.
-    render(<BookList />);
+    // Do not resolve fetch yet; we just assert the initial state.
+    const { setState } = renderWithSetState();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
+    // no row click happens, but ensure setState is not called during mount
+    expect(setState).not.toHaveBeenCalled();
   });
 
   it('calls fetch and renders a table with the fetched book', async () => {
@@ -39,13 +52,13 @@ describe('BookList', () => {
     };
     fetchMock.mockResolvedValue(respWithJson([book]));
 
-    render(<BookList />);
+    renderWithSetState();
 
     // Wait for table to appear
     const table = await screen.findByRole('table');
     expect(table).toBeInTheDocument();
     const headers = within(table).getAllByRole('columnheader').map(th => th.textContent);
-    expect(headers).toEqual(['Title', 'Author', 'Published Date', 'Genre', 'Rating']);
+    expect(headers).toEqual(['Title', 'Author', 'Published Date', 'Genre', 'Rating', 'Actions']);
 
     // Row content - formatted date and rounded rating
     const row = within(table).getAllByRole('row')[1];
@@ -58,10 +71,11 @@ describe('BookList', () => {
       formattedDate,
       'Test Genre',
       '5', // rating.toFixed(0)
+      'Delete',
     ]);
 
     // Verify fetch was called with expected URL
-    expect(fetchMock).toHaveBeenCalledWith('127.0.0.1/api/books');
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/books$/));
   });
 
   it('sorts by clicking on column headers', async () => {
@@ -71,7 +85,7 @@ describe('BookList', () => {
     ];
     fetchMock.mockResolvedValue(respWithJson(books));
 
-    render(<BookList />);
+    renderWithSetState();
     const table = await screen.findByRole('table');
 
     const getFirstRowTitle = () => within(table).getAllByRole('row')[1].querySelector('td')!.textContent;
@@ -94,11 +108,57 @@ describe('BookList', () => {
     expect(firstRowAuthor).toBe('Adam');
   });
 
-  it('shows Loading... when the fetch returns an empty array', async () => {
+  it('invokes setState with the book id when a row is clicked', async () => {
+    const books = [
+      { id: 'a', title: 'Alpha', author: 'Adam', genre: 'G', publishedDate: '2022-02-02', rating: 2 },
+    ];
+    fetchMock.mockResolvedValue(respWithJson(books));
+
+    const setStateSpy = vi.fn();
+    renderWithSetState(setStateSpy);
+
+    const row = await screen.findByRole('row', { name: /Alpha/i });
+    // click the row
+    (row as HTMLElement).click();
+
+    expect(setStateSpy).toHaveBeenCalledWith({ id: 'a' });
+  });
+
+  it('shows Loading... when the fetch returns an empty array (interpreted as null)', async () => {
     fetchMock.mockResolvedValue(respWithJson(null));
-    render(<BookList />);
-    // With empty array, component keeps showing Loading... per current implementation
+    renderWithSetState();
+    // With null, component keeps showing Loading... per current implementation
     const loading = await screen.findByText('Loading...');
     expect(loading).toBeInTheDocument();
   });
+});
+
+it('deletes a book when Delete button is clicked without triggering row selection', async () => {
+  const books = [
+    { id: 'x', title: 'To Delete', author: 'Auth', genre: 'G', publishedDate: '2020-01-01', rating: 3 },
+  ];
+  // First GET of books
+  fetchMock.mockResolvedValueOnce(respWithJson(books));
+  // Then DELETE
+  fetchMock.mockResolvedValueOnce({ ok: true } as Response);
+
+  const setStateSpy = vi.fn();
+  renderWithSetState(setStateSpy);
+
+  // Wait for row
+  const row = await screen.findByRole('row', { name: /To Delete/i });
+  const delBtn = within(row).getByRole('button', { name: /Delete/i });
+
+  // Click delete
+  (delBtn as HTMLElement).click();
+
+  // Expect DELETE call with correct URL
+  expect(fetchMock).toHaveBeenLastCalledWith(expect.stringMatching(/\/api\/books\/x$/), expect.objectContaining({ method: 'DELETE' }));
+
+  // Row should be removed after deletion
+  await screen.findByRole('table');
+  expect(screen.queryByRole('row', { name: /To Delete/i })).toBeNull();
+
+  // setState should not have been called by clicking delete button
+  expect(setStateSpy).not.toHaveBeenCalled();
 });

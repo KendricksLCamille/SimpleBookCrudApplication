@@ -12,6 +12,6 @@
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ad24a8c3_002Dbce9_002D41af_002D9093_002D8eb17b358801/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="ProgramTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
-    &lt;TestId&gt;xUnit::EB1B0BF2-DF4A-49F5-A750-36C832D8EDB1::net9.0::Backend.ProgramTests.UpdateBook_ReturnsBadRequest_ForInvalidBookData&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::EB1B0BF2-DF4A-49F5-A750-36C832D8EDB1::net9.0::Backend.ProgramTests&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

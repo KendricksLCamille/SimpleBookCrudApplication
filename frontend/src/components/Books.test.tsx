@@ -11,13 +11,11 @@ vi.stubGlobal('alert', alertMock);
 
 import Books from './Books';
 
-// Helper to render the component with a specific id despite its atypical signature (Books(id: string))
+// Helper to render the component with a specific id to drive edit/create modes
 function renderWithId(id: string) {
-  function Wrapper() {
-    // Call the component function directly with the desired id
-    return Books(id);
-  }
-  return render(<Wrapper />);
+  const state = { id } as const; // edit mode; if GET not ok, the component behaves like creation
+  const setState = vi.fn();
+  return { ...render(<Books state={state} setState={setState} />), setState };
 }
 
 function respOk(jsonValue: unknown) {
@@ -59,11 +57,11 @@ describe('Books (create/edit form)', () => {
     // First call: GET /api/books/book-123 -> return existing
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url === '/api/books/book-123' && (!init || !init.method)) {
+      if (url.endsWith('/api/books/book-123') && (!init || !init.method)) {
         return respOk(existing);
       }
-      if (url === `/api/books/${existing.id}` && init?.method === 'PUT') {
-        // Accept any body
+      if (url.endsWith(`/api/books/${existing.id}`) && init?.method === 'PUT') {
+        // Accept anybody
         return respOk({});
       }
       return respNotOk();
@@ -82,15 +80,15 @@ describe('Books (create/edit form)', () => {
     expect(screen.getByLabelText('Published Date:')).toHaveValue('2024-01-15');
     expect(screen.getByLabelText('Rating:')).toHaveValue(4);
 
-    // Change a field to ensure body sends the new value
+    // Change a field to ensure the body sends the new value
     fireEvent.change(screen.getByLabelText('Title:'), { target: { value: 'Updated Title' } });
 
     fireEvent.click(updateBtn);
 
-    // Expect a PUT request with correct URL
-    expect(fetchMock).toHaveBeenCalledWith(`/api/books/${existing.id}`, expect.objectContaining({ method: 'PUT' }));
+    // Expect a PUT request with the correct URL
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`/api/books/${existing.id}$`)), expect.objectContaining({ method: 'PUT' }));
 
-    // Wait for async submit chain to resolve and alerts to be called
+    // Wait for an async submitted chain to resolve and alerts to be called
     await Promise.resolve();
     await Promise.resolve();
 
@@ -100,13 +98,13 @@ describe('Books (create/edit form)', () => {
   });
 
   it('stays in create mode when GET returns not ok and submits a POST to create', async () => {
-    // GET should be not ok, so component stays in create mode
+    // GET should be not ok, so the component stays in creation mode
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url === '/api/books/new-id' && (!init || !init.method)) {
+      if (url.endsWith('/api/books/new-id') && (!init || !init.method)) {
         return respNotOk(404);
       }
-      if (url === '/api/books' && init?.method === 'POST') {
+      if (url.endsWith('/api/books') && init?.method === 'POST') {
         return respOk({});
       }
       return respNotOk();
@@ -128,7 +126,7 @@ describe('Books (create/edit form)', () => {
     fireEvent.click(createBtn);
 
     // Expect POST to /api/books
-    expect(fetchMock).toHaveBeenCalledWith('/api/books', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/books$/), expect.objectContaining({ method: 'POST' }));
 
     // Wait for async submit chain
     await Promise.resolve();

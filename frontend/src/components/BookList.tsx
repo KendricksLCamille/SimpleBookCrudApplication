@@ -1,7 +1,11 @@
-import type {Book} from "../types.tsx";
+import {API_URL, type Book, type State} from "../types.tsx";
 import {useEffect, useState} from 'react'
+import * as React from "react";
 
-export default function BookList(){
+export default function BookList(props: Readonly<{ setState: React.Dispatch<React.SetStateAction<State>> }> | ((s: { id: string }) => void)) {
+    // Backward compatibility: allow calling as BookList(setStateFn) or <BookList setState={fn} />
+    const setState: React.Dispatch<React.SetStateAction<State>> | ((s: { id: string }) => void) =
+        typeof props === 'function' ? props : props.setState;
     const bookProperties = ['title', 'author', 'publishedDate', 'genre', 'rating'];
     const [books, setBooks] = useState<Book[] | null>(null);
 
@@ -10,7 +14,6 @@ export default function BookList(){
             setBooks(innerBooks);
         })
     },[])
-
 
     if (!books) return <p>Loading...</p>;
 
@@ -26,16 +29,38 @@ export default function BookList(){
 
                       return <th key={property} onClick={() => setBooks(sortBooks(books, property))}>{toTitleCase}</th>
                     })}
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {books.map((book) => (
-                    <tr key={book.id}>
+                    <tr key={book.id} onClick={() => setState({id: book.id})}>
                         <td>{book.title}</td>
                         <td>{book.author}</td>
                         <td>{new Date(book.publishedDate).toLocaleDateString()}</td>
                         <td>{book.genre}</td>
                         <td>{book.rating.toFixed(0)}</td>
+                        <td>
+                            <button
+                                aria-label={`Delete ${book.title}`}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        const ok = await deleteBook(book.id);
+                                        if (ok) {
+                                            setBooks(await getBooks())
+                                        } else {
+                                            alert('Failed to delete book');
+                                        }
+                                    } catch (err) {
+                                        console.error(err);
+                                        alert('Failed to delete book');
+                                    }
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </td>
                     </tr>))}
             </tbody>
         </table>
@@ -45,32 +70,26 @@ export default function BookList(){
 function getBooks(): Promise<Book[]>{
     // Simulating a fetch request
     return new Promise((resolve) => {
-       return fetch('127.0.0.1/api/books').then(response => response.json()).then(
-           json => resolve(JSON.parse(json))
+       return fetch(`${API_URL}/api/books`).then(response => response.json()).then(
+           json => {
+               console.log(json);
+               return resolve(json)
+           }
        , error => {
                console.error('Error fetching books:', error);
                resolve([]); // Return an empty array if there's an error
            });
-
-        /*setTimeout(() => {
-            const books: Book[] = []; // Replace this with your actual data source
-            for (let i = 0; i < 100; i++) {
-                const month = (Math.floor(Math.random() * 12) + 1).toString().padStart(2,'0');
-                const day = (Math.floor(Math.random() * 28) + 1).toString().padStart(2,'0');
-                const year = Math.floor(Math.random() * 9 + 2015).toString().padStart(4,'0');
-                books.push({
-                    id: `book-${i + 1}`,
-                    title: `Book ${Math.floor(Math.random() * 1000).toFixed(0)}`,
-                    author: `Author ${Math.floor(Math.random() * 1000).toFixed(0)}`,
-                    genre: `Genre ${i % 7 + 1}`,
-                    publishedDate: `${year}-${month}-${day}`,
-                    rating: Math.random() * 4 + 1
-                });
-            }
-
-            resolve(books);
-        }, 100);*/
     });
+}
+
+async function deleteBook(id: string): Promise<boolean> {
+    try {
+        const resp = await fetch(`${API_URL}/api/books/${id}`, { method: 'DELETE' });
+        return resp.ok;
+    } catch (e) {
+        console.error('Delete failed', e);
+        return false;
+    }
 }
 
 function sortBooks(books: Book[], sortBy: string): Book[] {

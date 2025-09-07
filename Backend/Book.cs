@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Backend;
 
-internal record Book(Guid Id, string Title, string Author, string Genre, DateTime PublishedDate, int Rating)
+internal record Book(Guid Id, string Title, string Author, string Genre, DateOnly PublishedDate, int Rating)
 {
     [Key]
     public Guid Id { get; set; } = Id;
@@ -23,7 +23,7 @@ internal record Book(Guid Id, string Title, string Author, string Genre, DateTim
     public string Genre { get; init; } = Genre;
 
     [Required]
-    public DateTime PublishedDate { get; init; } = PublishedDate;
+    public DateOnly PublishedDate { get; init; } = PublishedDate;
 
     [Required]
     [Range(1,5, ErrorMessage="Rating must be between 1 and 5")]
@@ -32,7 +32,15 @@ internal record Book(Guid Id, string Title, string Author, string Genre, DateTim
     public static Book Generate()
     {
         // Genre parameter has it's content length set to one to make sure there are more duplicate genres
-        return new Book(Guid.NewGuid(), RandomString(),RandomString(), RandomString(1), DateTime.Now, Random.Shared.Next(1,6));
+        return new Book(Guid.NewGuid(), RandomString(),RandomString(), RandomString(1), RandomDate(), Random.Shared.Next(1,6));
+
+        DateOnly RandomDate()
+        {
+            var year = Random.Shared.Next(1900, DateTime.Now.Year);
+            var month = Random.Shared.Next(1, 13);
+            var day = Random.Shared.Next(1, DateTime.DaysInMonth(year, month));
+            return new DateOnly(year, month, day);
+        }
 
         string RandomString(int length = 2)
         {
