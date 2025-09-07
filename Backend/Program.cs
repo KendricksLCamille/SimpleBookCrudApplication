@@ -10,12 +10,30 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
+// Database connection string from configuration
+var connectionString = builder.Configuration.GetConnectionString("Default")
+                      ?? "Data Source=book.db";
+
+builder.Services.AddDbContext<BookContext>(options => options.UseSqlite(connectionString));
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalhost5173",
-        policy => policy.WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
+    options.AddPolicy("ConfiguredCorsPolicy", policy =>
+    {
+        if (allowedOrigins.Length == 0)
+        {
+            policy.AllowAnyOrigin();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+        policy.AllowAnyHeader().AllowAnyMethod();
+    });
 });
 var app = builder.Build();
 
@@ -32,18 +50,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowLocalhost5173");
+app.UseCors("ConfiguredCorsPolicy");
 
 
-app.MapGet("/api/books", async () =>
+app.MapGet("/api/books", async (BookContext db) =>
 {
-    await using var db = new BookContext();
     return await db.Books.ToListAsync();
 }).WithName("GetAllBooks").WithDescription("Get all books");
 
-app.MapGet("/api/books/{id:guid}", async (Guid id) =>
+app.MapGet("/api/books/{id:guid}", async (Guid id, BookContext db) =>
     {
-        await using var db = new BookContext();
         var book = await db.Books.FindAsync(id);
         return book != null ? Results.Ok(book) : Results.NotFound();
     }).WithName("GetBook")
@@ -51,9 +67,8 @@ app.MapGet("/api/books/{id:guid}", async (Guid id) =>
     .Produces<Book>()
     .Produces(StatusCodes.Status404NotFound);
 
-app.MapPost("/api/books", async (Book book) =>
+app.MapPost("/api/books", async (Book book, BookContext db) =>
     {
-        await using var db = new BookContext();
         if (book.IsNotValidBook(out var validationResult)) return Results.BadRequest(validationResult);
         book.Id = Guid.NewGuid(); // Generate a new ID for the book.
         db.Books.Add(book);
@@ -64,9 +79,8 @@ app.MapPost("/api/books", async (Book book) =>
     .Produces<Book>(StatusCodes.Status201Created)
     .Produces(StatusCodes.Status400BadRequest);
 
-app.MapPut("/api/books/{id:guid}", async (Guid id, Book book) =>
+app.MapPut("/api/books/{id:guid}", async (Guid id, Book book, BookContext db) =>
     {
-        await using var db = new BookContext();
         if (book.IsNotValidBook(out var validationResult)) return Results.BadRequest(validationResult);
         book.Id = id; // Update the ID of the book.
         db.Entry(book).State = EntityState.Modified;
@@ -77,9 +91,8 @@ app.MapPut("/api/books/{id:guid}", async (Guid id, Book book) =>
     .Produces(StatusCodes.Status400BadRequest)
     .Produces<Book>(StatusCodes.Status204NoContent);
 
-app.MapDelete("/api/books/{id:guid}", async (Guid id) =>
+app.MapDelete("/api/books/{id:guid}", async (Guid id, BookContext db) =>
 {
-    await using var db = new BookContext();
     var book = await db.Books.FindAsync(id);
     if (book == null) return Results.NoContent();
     db.Books.Remove(book);
@@ -87,21 +100,26 @@ app.MapDelete("/api/books/{id:guid}", async (Guid id) =>
     return Results.NoContent();
 }).WithName("DeleteBook").WithDescription("Delete a book by ID");
 
-app.MapGet("/api/books/stats", async () =>
+app.MapGet("/api/books/stats", async (BookContext db) =>
 {
-    await using var db = new BookContext();
     var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
     return genreToBooksCount;
 }).WithName("GetBooksStats").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
 
-await using var db = new BookContext();
-await db.Database.EnsureCreatedAsync();
-if (!await db.Books.AnyAsync())
+// Ensure database and optionally seed
+using (var scope = app.Services.CreateScope())
 {
-    const int numberOfBooks = 100; // Ensures generating duplicate genres.
-    db.AddRange(Enumerable.Range(1, numberOfBooks).Select(_ => Book.Generate()));
-}
+    var db = scope.ServiceProvider.GetRequiredService<BookContext>();
+    await db.Database.EnsureCreatedAsync();
 
-await db.SaveChangesAsync();
+    var seedingEnabled = app.Configuration.GetValue("Seeding:Enabled", true);
+    var seedCount = app.Configuration.GetValue("Seeding:Count", 100);
+
+    if (seedingEnabled && !await db.Books.AnyAsync())
+    {
+        db.AddRange(Enumerable.Range(1, seedCount).Select(_ => Book.Generate()));
+        await db.SaveChangesAsync();
+    }
+}
 
 await app.RunAsync();
