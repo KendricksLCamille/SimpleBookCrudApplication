@@ -18,52 +18,54 @@ export default function BookList(props: Readonly<{ setState: React.Dispatch<Reac
     if (!books) return <p>Loading...</p>;
 
     return (
-        <table>
-            <thead>
-            <tr>
-                {bookProperties.map((property) => {
-                    let toTitleCase = property.charAt(0).toUpperCase() + property.slice(1);
+        <div className="table-container">
+            <table className="book-table">
+                <thead className="book-table-head">
+                <tr>
+                    {bookProperties.map((property) => {
+                        let toTitleCase = property.charAt(0).toUpperCase() + property.slice(1);
 
-                    // Don't feel like writing the code to do this dynamically
-                    if (toTitleCase.includes('ate')) toTitleCase = "Published Date";
+                        // Don't feel like writing the code to do this dynamically
+                        if (toTitleCase.includes('ate')) toTitleCase = "Published Date";
 
-                    return <th key={property} onClick={() => setBooks(sortBooks(books, property))}>{toTitleCase}</th>
-                })}
-                <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            {books.map((book) => (
-                <tr key={book.id} onClick={() => setState({id: book.id})}>
-                    <td>{book.title}</td>
-                    <td>{book.author}</td>
-                    <td>{new Date(book.publishedDate).toLocaleDateString()}</td>
-                    <td>{book.genre}</td>
-                    <td>{book.rating.toFixed(0)}</td>
-                    <td>
-                        <button
-                            aria-label={`Delete ${book.title}`}
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                    const ok = await deleteBook(book.id);
-                                    if (ok) {
-                                        setBooks(await getBooks())
-                                    } else {
+                        return <th key={property} onClick={() => setBooks(sortBooks(books, property))}>{toTitleCase}</th>
+                    })}
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {books.map((book) => (
+                    <tr key={book.id} onClick={() => setState({id: book.id})}>
+                        <td>{book.title}</td>
+                        <td>{book.author}</td>
+                        <td>{new Date(book.publishedDate).toLocaleDateString()}</td>
+                        <td>{book.genre}</td>
+                        <td>{book.rating.toFixed(0)}</td>
+                        <td>
+                            <button
+                                aria-label={`Delete ${book.title}`}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        const ok = await deleteBook(book.id);
+                                        if (ok) {
+                                            setBooks(await getBooks())
+                                        } else {
+                                            alert('Failed to delete book');
+                                        }
+                                    } catch (err) {
+                                        console.error(err);
                                         alert('Failed to delete book');
                                     }
-                                } catch (err) {
-                                    console.error(err);
-                                    alert('Failed to delete book');
-                                }
-                            }}
-                        >
-                            Delete
-                        </button>
-                    </td>
-                </tr>))}
-            </tbody>
-        </table>
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </td>
+                    </tr>))}
+                </tbody>
+            </table>
+        </div>
     );
 }
 
