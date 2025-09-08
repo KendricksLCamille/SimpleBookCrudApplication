@@ -61,7 +61,7 @@ export default function Books() {
                 setValue('genre', json.genre);
                 setValue('publishedDate', json.publishedDate.slice(0, 10));
                 setValue('rating', Math.round(json.rating));
-            } catch (e) {
+            } catch {
                 setIsCreate(true);
             } finally {
                 if (!cancelled) setLoading(false);
@@ -121,7 +121,7 @@ export default function Books() {
                 }
                 navigate('/');
             }
-        } catch (_) {
+        } catch {
             alert('Network error');
         }
     }

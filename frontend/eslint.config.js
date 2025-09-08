@@ -16,12 +16,9 @@ export default tseslint.config([
       tseslint.configs.recommended,
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
-      'plugin:jsx-a11y/recommended',
-      'plugin:prettier/recommended'
+      // Use the plugin's flat config variant for ESLint flat config
+      a11y.flatConfigs.recommended,
     ],
-    plugins: {
-      'jsx-a11y': a11y,
-    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
