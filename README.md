@@ -70,11 +70,34 @@ CORS
 4. Open the printed local URL (typically http://localhost:5173).
 
 
-## Running Full Stack Locally
+## Running Full Stack Locally (without Docker)
 
 - Start the backend first (dotnet run in Backend/).
 - Start the frontend next (npm run dev in frontend/).
 - Ensure the frontend URL (default http://localhost:5173) matches the backend CORS configuration.
+
+## Run with Docker (recommended for quick start)
+
+This repo includes Dockerfiles for backend and frontend and a docker-compose.yml to run both together.
+
+Prerequisites:
+- Docker and Docker Compose
+
+Start the stack:
+- docker compose up --build
+
+What you get:
+- Backend API: http://localhost:5089 (Swagger UI available in Development)
+- Frontend (Vite dev server): http://localhost:5173
+- SQLite DB file persisted in a named volume (backend_data)
+
+Environment notes:
+- Frontend uses VITE_API_URL=http://backend:8080 inside the compose network to call the API.
+- Backend CORS is configured via env vars in compose (Cors__AllowedOrigins__0, __1). Adjust if you change ports/hosts.
+- ConnectionStrings__Default is set to Data Source=/app/data/app.sqlite. Change as needed.
+
+Stop and remove containers:
+- docker compose down
 
 ## Troubleshooting
 
