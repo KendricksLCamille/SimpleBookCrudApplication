@@ -10,12 +10,23 @@ const alertMock = vi.fn();
 vi.stubGlobal('alert', alertMock);
 
 import Books from './Books';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Helper to render the component with a specific id to drive edit/create modes
 function renderWithId(id: string) {
-  const state = { id } as const; // edit mode; if GET not ok, the component behaves like creation
-  const setState = vi.fn();
-  return { ...render(<Books state={state} setState={setState} />), setState };
+  const qc = new QueryClient();
+  const initialPath = id ? `/edit/${id}` : '/create';
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/create" element={<Books />} />
+          <Route path="/edit/:id" element={<Books />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
 }
 
 function respOk(jsonValue: unknown) {
@@ -85,16 +96,18 @@ describe('Books (create/edit form)', () => {
 
     fireEvent.click(updateBtn);
 
-    // Expect a PUT request with the correct URL
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`/api/books/${existing.id}$`)), expect.objectContaining({ method: 'PUT' }));
+    // Expect a PUT request with the correct URL (wait for submit to process)
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringMatching(new RegExp(`/api/books/${existing.id}$`)),
+        expect.objectContaining({ method: 'PUT' })
+      );
+    });
 
-    // Wait for an async submitted chain to resolve and alerts to be called
-    await Promise.resolve();
-    await Promise.resolve();
-
-    // Alert should be shown from both updateBook and handleSubmit then-chain
-    expect(alertMock).toHaveBeenCalledWith('Book updated successfully');
-    expect(alertMock).toHaveBeenCalledWith(`Updated book ${existing.id}`);
+    // Wait for alerts
+    await vi.waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith("Book updated successfully");
+    });
   });
 
   it('stays in create mode when GET returns not ok and submits a POST to create', async () => {
@@ -126,14 +139,17 @@ describe('Books (create/edit form)', () => {
     fireEvent.click(createBtn);
 
     // Expect POST to /api/books
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/books$/), expect.objectContaining({ method: 'POST' }));
-
-    // Wait for async submit chain
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringMatching(/\/api\/books$/),
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
 
     // Alert should be shown
-    expect(alertMock).toHaveBeenCalledWith(expect.stringMatching(/^Created new book/));
+    await vi.waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(expect.stringMatching(/^Created new book/));
+    });
 
   });
 });

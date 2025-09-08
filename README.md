@@ -30,7 +30,14 @@ Optional but useful:
 2. Restore and build:
     - dotnet restore
     - dotnet build
-3. Run the API:
+3. Apply EF Core migrations (first time and whenever the model changes):
+    - If needed, install EF CLI: dotnet tool install --global dotnet-ef
+    - Add initial migration (already included in repo as InitialCreate): dotnet ef migrations list
+    - Create/Update the database: dotnet ef database update
+   Notes:
+    - The app also calls Database.Migrate() on startup to apply pending migrations automatically.
+    - SQLite files are configured via appsettings.{Environment}.json (book.db, book.dev.db by default).
+4. Run the API:
     - dotnet run
 
 By default, in Development the app enables Swagger UI. Look for console output indicating the listening URLs, typically
@@ -137,6 +144,15 @@ General
 
 - See docs/tasks.md for a roadmap of improvements (including CONTRIBUTING.md and LICENSE placeholders to be added).
 - Until a LICENSE is added, treat this repository as "All rights reserved" by default.
+
+## Design decisions and trade-offs
+
+- Backend: .NET 9 Minimal API for simplicity and fast startup; endpoints organized via a mapper class to keep Program.cs small.
+- Database: SQLite chosen for local dev simplicity; migrations are included and applied automatically at startup (Database.Migrate). Trade-off: not ideal for high concurrency; swap connection string for server DB in production.
+- Seeding: Configurable via appsettings (Enabled/Count) to provide demo data; avoided heavy seed logic. Trade-off: random data is not deterministic; tests should disable seeding.
+- CORS: Configured via appsettings per environment instead of hardcoding. Easier portability between hosts.
+- Frontend: React + Vite + React Query for server state; environment variable VITE_API_URL is used to point at the backend.
+- Swagger: Enabled only in Development to avoid exposing in production without auth.
 
 ## Acknowledgements
 

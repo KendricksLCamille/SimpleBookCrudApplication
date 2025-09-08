@@ -45,11 +45,11 @@ app.UseCors("ConfiguredCorsPolicy");
 
 app.MapBooksApi();
 
-// Ensure the database and optionally seed
+// Apply migrations and optionally seed
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BookContext>();
-    await db.Database.EnsureCreatedAsync();
+    await db.Database.MigrateAsync();
 
     var seedingEnabled = app.Configuration.GetValue("Seeding:Enabled", true);
     var seedCount = app.Configuration.GetValue("Seeding:Count", 100);
