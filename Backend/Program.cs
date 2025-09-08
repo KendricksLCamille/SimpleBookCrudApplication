@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using System.Text;
 using Backend;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,8 +13,7 @@ var allowedOrigins = builder.Configuration
     .Get<string[]>() ?? [];
 
 // Database connection string from configuration
-var connectionString = builder.Configuration.GetConnectionString("Default")
-                      ?? "Data Source=book.db";
+var connectionString = builder.Configuration.GetConnectionString("Default");
 
 builder.Services.AddDbContext<BookContext>(options => options.UseSqlite(connectionString));
 
@@ -24,15 +21,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ConfiguredCorsPolicy", policy =>
     {
-        if (allowedOrigins.Length == 0)
-        {
-            policy.AllowAnyOrigin();
-        }
-        else
-        {
-            policy.WithOrigins(allowedOrigins);
-        }
-        policy.AllowAnyHeader().AllowAnyMethod();
+        if (allowedOrigins.Length == 0) return;
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
     });
 });
 var app = builder.Build();
@@ -53,14 +43,11 @@ app.UseHttpsRedirection();
 app.UseCors("ConfiguredCorsPolicy");
 
 
-app.MapGet("/api/books", async (BookContext db) =>
-{
-    return await db.Books.ToListAsync();
-}).WithName("GetAllBooks")
-  .WithTags("Books")
-  .WithSummary("List all books")
-  .WithDescription("Returns the full list of books.")
-  .Produces<List<Book>>(StatusCodes.Status200OK, contentType: "application/json");
+app.MapGet("/api/books", async (BookContext db) => { return await db.Books.ToListAsync(); }).WithName("GetAllBooks")
+    .WithTags("Books")
+    .WithSummary("List all books")
+    .WithDescription("Returns the full list of books.")
+    .Produces<List<Book>>(StatusCodes.Status200OK, contentType: "application/json");
 
 app.MapGet("/api/books/{id:guid}", async (Guid id, BookContext db) =>
     {
@@ -111,12 +98,13 @@ app.MapDelete("/api/books/{id:guid}", async (Guid id, BookContext db) =>
 }).WithName("DeleteBook").WithTags("Books").WithDescription("Delete a book by ID");
 
 app.MapGet("/api/books/stats", async (BookContext db) =>
-{
-    var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
-    return genreToBooksCount;
-}).WithName("GetBooksStats").WithTags("Books").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
+    {
+        var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
+        return genreToBooksCount;
+    }).WithName("GetBooksStats").WithTags("Books").WithDescription("Get the count of books by genre")
+    .Produces<Dictionary<string, int>>();
 
-// Ensure database and optionally seed
+// Ensure the database and optionally seed
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BookContext>();

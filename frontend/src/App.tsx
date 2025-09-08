@@ -4,7 +4,7 @@ import Books from '../src/components/Books'
 import Statistic from '../src/components/Statistic2'
 import NavBar from '../src/components/NavBar'
 import {useEffect, useMemo, useState} from "react";
-import type { State } from "./types.tsx";
+import { API_URL, type State } from "./types.tsx";
 
 function isFormState(s: State): s is Exclude<State, 'browse' | 'stats'> {
     return s === 'create' || typeof s === 'object';
@@ -49,6 +49,18 @@ function App() {
             window.location.hash = expectedHash;
         }
     }, [state]);
+
+    // Centralized API URL gate: show only error OR normal content, not both
+    if (!API_URL) {
+        return (
+            <div style={{padding: 16}}>
+                <p style={{color: 'crimson'}}>
+                    API base URL is not configured. Please set VITE_API_URL in frontend/.env (or provide via environment variable)
+                    to point to your backend, e.g.: VITE_API_URL=http://localhost:5089. Then restart the frontend dev server.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div style={{display: 'grid', gap: 24}}>

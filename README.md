@@ -69,7 +69,6 @@ CORS
    - npm run dev
 4. Open the printed local URL (typically http://localhost:5173).
 
-The frontend expects the backend API to be running locally. Configure the API base URL via environment variable VITE_API_URL in frontend/.env (use frontend/.env.example as a template). Example: VITE_API_URL=http://localhost:5089. By default, the backend assumes Development and enables HTTPS redirection. Most browsers will accept the dev certificate once trusted.
 
 ## Running Full Stack Locally
 
