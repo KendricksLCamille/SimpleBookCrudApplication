@@ -147,12 +147,36 @@ General
 
 ## Design decisions and trade-offs
 
-- Backend: .NET 9 Minimal API for simplicity and fast startup; endpoints organized via a mapper class to keep Program.cs small.
-- Database: SQLite chosen for local dev simplicity; migrations are included and applied automatically at startup (Database.Migrate). Trade-off: not ideal for high concurrency; swap connection string for server DB in production.
-- Seeding: Configurable via appsettings (Enabled/Count) to provide demo data; avoided heavy seed logic. Trade-off: random data is not deterministic; tests should disable seeding.
-- CORS: Configured via appsettings per environment instead of hardcoding. Easier portability between hosts.
-- Frontend: React + Vite + React Query for server state; environment variable VITE_API_URL is used to point at the backend.
-- Swagger: Enabled only in Development to avoid exposing in production without auth.
+I generally shy away from DTOs since I find for small projects like these, they don't buy anything.
+
+### Backend
+
+For the backend, I chose to stick to .NET9 style minimum API because I didn't really need all the bell and whistles of a
+controller based API. The only thing a controller would have bought me was not having to write "/api/books" but the AI
+tools that I used showed that grouping them number a separate static method and then using an extension method on the app
+could give me access to that convinence.
+
+I choose to use records to have a mostly immutable data structure with Id being left mutable since it is the one that
+may occasionally need some changes.
+
+
+### Database
+
+I choose SQLite since it minimized the number of dependencies while still be high performance. While not ideal for
+high concurrency, so long as that limit isn't hit it isn't really a problem. For my version, it isn't a problem since
+it only accept on user. However, even if I supported many users, I think for data this small it might just be better to 
+include a write queue.
+
+### CORS
+
+To make it easier for the frontend and backend to cmomunicate on the same device, 
+I've enabled CORS for the backend to allow the frontend calls.
+I've also implemented a environment variable to be set for the frontend so it can call the API no matter what URL it has.
+
+### Frontend
+
+React + Vite + React Query for server state; environment variable VITE_API_URL is used to point at the backend.
+
 
 ## Acknowledgements
 
