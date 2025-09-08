@@ -16,7 +16,7 @@ Backend architecture and API
 10. [ ] Add FluentValidation or model validation filters for declarative validation instead of manual `IsNotValidBook` calls.
 11. [ ] Implement centralized error handling middleware to provide consistent problem details (RFC 7807) responses.
 12. [ ] Add API versioning (e.g., Asp.Versioning) and route versioning (v1) for forward compatibility.
-13. [ ] Enable minimal API endpoint metadata for all routes (Produces/Consumes, status codes, summaries) and ensure Swagger docs accurate.
+13. [x] Enable minimal API endpoint metadata for all routes (Produces/Consumes, status codes, summaries) and ensure Swagger docs accurate.
 14. [x] Add CORS configuration via configuration settings and environment-based origins; avoid hardcoding `http://localhost:5173`.
 15. [x] Externalize app settings (connection string for SQLite, seeding toggles) into appsettings.{Environment}.json.
 

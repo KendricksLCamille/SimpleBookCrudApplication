@@ -53,9 +53,11 @@ public static class BooksApi
             })
             .WithName("UpdateBook")
             .WithTags("Books")
-            .WithDescription("Updates an existing book by ID")
-            .Produces(StatusCodes.Status400BadRequest)
-            .Produces<Book>(StatusCodes.Status204NoContent);
+            .WithSummary("Update an existing book")
+            .WithDescription("Updates an existing book by ID. Returns 204 No Content on success, 400 for validation errors.")
+            .Accepts<Book>("application/json")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest);
 
         group.MapDelete("/{id:guid}", async (Guid id, BookContext db) =>
             {
@@ -67,7 +69,9 @@ public static class BooksApi
             })
             .WithName("DeleteBook")
             .WithTags("Books")
-            .WithDescription("Delete a book by ID");
+            .WithSummary("Delete a book")
+            .WithDescription("Deletes a book by ID. Returns 204 No Content whether or not the book existed.")
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapGet("/stats", async (BookContext db) =>
             {
@@ -78,8 +82,9 @@ public static class BooksApi
             })
             .WithName("GetBooksStats")
             .WithTags("Books")
-            .WithDescription("Get the count of books by genre")
-            .Produces<Dictionary<string, int>>();
+            .WithSummary("Get book statistics by genre")
+            .WithDescription("Returns a dictionary of Genre -> Count of books.")
+            .Produces<Dictionary<string, int>>(StatusCodes.Status200OK, contentType: "application/json");
 
         return app;
     }
