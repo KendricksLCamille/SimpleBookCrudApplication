@@ -1,9 +1,19 @@
 using Microsoft.EntityFrameworkCore;
+using Backend.Dtos;
 
 namespace Backend.Endpoints;
 
 public static class BooksApi
 {
+    // Compiled projection query for stats (null-safe Genre)
+    private static readonly Func<BookContext, IEnumerable<GenreCount>> s_getGenreCountsQuery =
+        EF.CompileQuery((BookContext ctx) =>
+            ctx.Books
+               .AsNoTracking()
+               .GroupBy(b => b.Genre ?? "Unknown")
+               .Select(g => new GenreCount(g.Key, g.Count()))
+        );
+
     public static IEndpointRouteBuilder MapBooksApi(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/books");
@@ -69,16 +79,16 @@ public static class BooksApi
             .WithTags("Books")
             .WithDescription("Delete a book by ID");
 
-        group.MapGet("/stats", async (BookContext db) =>
+        group.MapGet("/stats", (BookContext db) =>
             {
-                var genreToBooksCount = await db.Books
-                    .GroupBy(b => b.Genre)
-                    .ToDictionaryAsync(g => g.Key, g => g.Count());
-                return genreToBooksCount;
+                // Use projection and compiled query; group key is null-safe
+                var list = s_getGenreCountsQuery(db).ToList();
+                var dict = list.ToDictionary(x => x.Genre, x => x.Count);
+                return dict;
             })
             .WithName("GetBooksStats")
             .WithTags("Books")
-            .WithDescription("Get the count of books by genre")
+            .WithDescription("Get the count of books by genre (null-safe)")
             .Produces<Dictionary<string, int>>();
 
         return app;

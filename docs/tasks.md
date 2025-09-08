@@ -65,7 +65,7 @@ Frontend architecture and UX
 47. [ ] Implement routing for views (list/detail/edit) and deep linking.
 
 DevEx and delivery
-48. [x] Provide Dockerfile(s) for backend and frontend; add docker-compose for local dev (API + DB + frontend).
+48. [ ] Provide Dockerfile(s) for backend and frontend; add docker-compose for local dev (API + DB + frontend).
 49. [ ] Add makefile or dev script (e.g., ./scripts/dev.sh) to run full stack with hot reload.
 50. [ ] Cache EF Core SQLite database location under project data directory instead of temp; allow override via env var.
 51. [ ] Add environment variable documentation and sample .env files for frontend/backend.
