@@ -56,15 +56,21 @@ app.UseCors("ConfiguredCorsPolicy");
 app.MapGet("/api/books", async (BookContext db) =>
 {
     return await db.Books.ToListAsync();
-}).WithName("GetAllBooks").WithDescription("Get all books");
+}).WithName("GetAllBooks")
+  .WithTags("Books")
+  .WithSummary("List all books")
+  .WithDescription("Returns the full list of books.")
+  .Produces<List<Book>>(StatusCodes.Status200OK, contentType: "application/json");
 
 app.MapGet("/api/books/{id:guid}", async (Guid id, BookContext db) =>
     {
         var book = await db.Books.FindAsync(id);
         return book != null ? Results.Ok(book) : Results.NotFound();
     }).WithName("GetBook")
-    .WithDescription("Get a book by ID")
-    .Produces<Book>()
+    .WithTags("Books")
+    .WithSummary("Get a book by ID")
+    .WithDescription("Returns a single book when it exists; 404 when not found.")
+    .Produces<Book>(StatusCodes.Status200OK, contentType: "application/json")
     .Produces(StatusCodes.Status404NotFound);
 
 app.MapPost("/api/books", async (Book book, BookContext db) =>
@@ -75,8 +81,11 @@ app.MapPost("/api/books", async (Book book, BookContext db) =>
         await db.SaveChangesAsync();
         return Results.Created("/api/books/" + book.Id, book);
     }).WithName("AddBook")
-    .WithDescription("Add a new book")
-    .Produces<Book>(StatusCodes.Status201Created)
+    .WithTags("Books")
+    .WithSummary("Create a new book")
+    .WithDescription("Creates a new book and returns it with Location header pointing to the new resource.")
+    .Accepts<Book>("application/json")
+    .Produces<Book>(StatusCodes.Status201Created, contentType: "application/json")
     .Produces(StatusCodes.Status400BadRequest);
 
 app.MapPut("/api/books/{id:guid}", async (Guid id, Book book, BookContext db) =>
@@ -87,6 +96,7 @@ app.MapPut("/api/books/{id:guid}", async (Guid id, Book book, BookContext db) =>
         await db.SaveChangesAsync();
         return Results.NoContent();
     }).WithName("UpdateBook")
+    .WithTags("Books")
     .WithDescription("Updates an existing book by ID")
     .Produces(StatusCodes.Status400BadRequest)
     .Produces<Book>(StatusCodes.Status204NoContent);
@@ -98,13 +108,13 @@ app.MapDelete("/api/books/{id:guid}", async (Guid id, BookContext db) =>
     db.Books.Remove(book);
     await db.SaveChangesAsync();
     return Results.NoContent();
-}).WithName("DeleteBook").WithDescription("Delete a book by ID");
+}).WithName("DeleteBook").WithTags("Books").WithDescription("Delete a book by ID");
 
 app.MapGet("/api/books/stats", async (BookContext db) =>
 {
     var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
     return genreToBooksCount;
-}).WithName("GetBooksStats").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
+}).WithName("GetBooksStats").WithTags("Books").WithDescription("Get the count of books by genre").Produces<Dictionary<string, int>>();
 
 // Ensure database and optionally seed
 using (var scope = app.Services.CreateScope())
