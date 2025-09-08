@@ -2,7 +2,7 @@
 
 A minimal full‑stack example consisting of:
 
-- Backend: .NET 9 Minimal API with Entity Framework Core and SQLite (file stored under the OS temp directory).
+- Backend: .NET 9 Minimal API with Entity Framework Core and SQLite (SQLite file paths configured via appsettings).
 - Frontend: React + TypeScript single‑page app.
 
 The application lets you manage a small library of books (list, create, update, delete) and view simple stats by genre.
@@ -12,12 +12,14 @@ Swagger/OpenAPI is enabled for API exploration in Development.
 
 - Backend/ — .NET 9 minimal API (EF Core + SQLite)
 - frontend/ — React + TypeScript app (Vite or similar dev server)
-- docs/ — Documentation (e.g., tasks checklist)
+- 
 
 ## Prerequisites
 
 - .NET SDK 9.0+
 - Node.js 18+ (20+ recommended) and npm (or pnpm/yarn)
+- Vite (bundler/dev server). It is already included as a devDependency and runs via npm scripts (no global install
+  required). Optionally install globally: npm i -g vite.
 
 Optional but useful:
 
@@ -30,10 +32,12 @@ Optional but useful:
 2. Restore and build:
     - dotnet restore
     - dotnet build
-3. Apply EF Core migrations (first time and whenever the model changes):
+3. If the frontend is running on the same device, update the "Cors:AllowedOrigins" with the valid url
+4. Apply EF Core migrations (first time and whenever the model changes):
     - If needed, install EF CLI: dotnet tool install --global dotnet-ef
     - Add initial migration (already included in repo as InitialCreate): dotnet ef migrations list
     - Create/Update the database: dotnet ef database update
+
    Notes:
     - The app also calls Database.Migrate() on startup to apply pending migrations automatically.
     - SQLite files are configured via appsettings.{Environment}.json (book.db, book.dev.db by default).
@@ -46,12 +50,12 @@ something like:
 - https://localhost:7xxx
 - http://localhost:5xxx
 
-Swagger UI (Development only):
+#### Swagger UI (Development only):
 
-- It is configured at the root route when running in Development and uses the v1 endpoint at /swagger/v1/swagger.json.
-  If you don’t see it at the root, try /swagger.
+- When running in Development, Swagger UI is served at the root URL ("/") and uses the v1 endpoint at
+  /swagger/v1/swagger.json. If you don’t see it at the root, try /swagger.
 
-API Endpoints (examples):
+#### API Endpoints (examples):
 
 - GET /api/books — list all books
 - GET /api/books/{id} — get a book by id
@@ -60,7 +64,7 @@ API Endpoints (examples):
 - DELETE /api/books/{id} — delete a book
 - GET /api/books/stats — counts of books grouped by genre
 
-Database
+#### Database
 
 - Connection string and seeding are configurable via appsettings.{Environment}.json.
     - Backend/appsettings.json defines defaults. Backend/appsettings.Development.json overrides for Development.
@@ -68,11 +72,13 @@ Database
     - Seeding:Enabled (bool) toggles initial data creation; Seeding:Count controls number of demo books.
 - On first run, if seeding is enabled and the DB is empty, the API seeds demo books.
 
-Run Backend Tests
+#### Run Backend Tests
 
 - From Backend/ run: dotnet test
 
-CORS
+#### CORS
+
+This is only necessary if the frontend and backend are running on the same device.
 
 - CORS is configured via configuration, not hardcoded. In Backend/appsettings.Development.json, set Cors:AllowedOrigins
   to a list of allowed frontend origins, e.g. ["http://localhost:5173", "http://127.0.0.1:5173"]. For other
@@ -86,9 +92,12 @@ CORS
     - cd frontend
 2. Install dependencies:
     - npm install
-3. Start the dev server:
+3. Configure the API base URL (required):
+    - Copy .env.example to .env and adjust VITE_API_URL to point to your backend.
+    - Alternatively, set it inline when starting: VITE_API_URL=http://localhost:5152 npm run dev
+4. Start the dev server:
     - npm run dev
-4. Open the printed local URL (typically http://localhost:5173).
+5. Open the printed local URL (typically http://localhost:5173).
 
 ## Running Full Stack Locally
 
@@ -96,25 +105,11 @@ CORS
 - Start the frontend next (npm run dev in frontend/).
 - Ensure the frontend URL (default http://localhost:5173) matches the backend CORS configuration.
 
-## One-command Dev Script
-
-To automatically start both the backend and frontend and link them together (no manual setup) use Python 3.
-
-- python3 scripts/dev.py
-
-Notes:
-
-- The scripts automatically:
-    - restore .NET dependencies (dotnet restore) and install frontend deps (npm ci/install on first run),
-    - start the backend on http://localhost:5152 (hot reload) and the frontend dev server,
-    - set VITE_API_URL for the frontend, pointing at the backend URL.
-- To override the backend URL, set env BACKEND_URL (for dev.sh/dev.py/dev.mjs), or pass -BackendUrl in dev.ps1.
-- Logs are written under untitled/backend.log and untitled/frontend.log.
-
 ## Running Full Stack
 
-- Start the backend on a some service and compy its url
-- Update the frontends VITE_API_URL then start up the front end.
+- Deploy or start the backend somewhere (copy its URL).
+- Configure the frontend by setting VITE_API_URL to the backend URL (e.g., update frontend/.env), then start/build the
+  frontend.
 
 ## Troubleshooting
 
@@ -124,12 +119,13 @@ Backend
   ASPNETCORE_URLS=http://localhost:5089 dotnet run
 - HTTPS certificate issues: If browser warns about the dev certificate, run: dotnet dev-certs https --trust and restart
   the backend.
-- SQLite database location: The DB file is created in the OS temp directory (book.db). Deleting it resets the data.
+- SQLite database location: Configured via appsettings.{Environment}.json (Data Source=book.db or book.dev.db by
+  default, placed in the working directory). Deleting the file resets the data.
 
 Frontend
 
 - CORS errors in browser console: Ensure the backend is running and CORS allows the frontend origin (Program.cs policy "
-  AllowLocalhost5173"). Update the origin or run the frontend on http://localhost:5173.
+  ConfiguredCorsPolicy"). Update the origin or run the frontend on http://localhost:5173.
 - Node or npm version errors: Upgrade Node to 18+ (preferably 20+). Delete node_modules and package-lock.json and
   reinstall if needed.
 
@@ -151,32 +147,30 @@ I generally shy away from DTOs since I find for small projects like these, they 
 
 ### Backend
 
-For the backend, I chose to stick to .NET9 style minimum API because I didn't really need all the bell and whistles of a
-controller based API. The only thing a controller would have bought me was not having to write "/api/books" but the AI
-tools that I used showed that grouping them number a separate static method and then using an extension method on the app
-could give me access to that convinence.
+For the backend, I chose to stick to .NET 9 minimal API because I didn't need all the bells and whistles of a
+controller-based API. The only thing a controller would have bought me was not having to write "/api/books", but the AI
+tools I used showed that grouping endpoints under a separate static class and exposing an extension method on
+WebApplication provides similar convenience.
 
-I choose to use records to have a mostly immutable data structure with Id being left mutable since it is the one that
-may occasionally need some changes.
-
+I chose to use records to have a mostly immutable data structure, with Id left mutable since it may occasionally need to
+be set.
 
 ### Database
 
-I choose SQLite since it minimized the number of dependencies while still be high performance. While not ideal for
-high concurrency, so long as that limit isn't hit it isn't really a problem. For my version, it isn't a problem since
-it only accept on user. However, even if I supported many users, I think for data this small it might just be better to 
-include a write queue.
+I chose SQLite since it minimizes dependencies while still being high performance. While not ideal for high concurrency,
+it works well for this use case. For my version it only accepts one user; even with more users, for data this small a
+simple write queue could be sufficient.
 
 ### CORS
 
-To make it easier for the frontend and backend to cmomunicate on the same device, 
-I've enabled CORS for the backend to allow the frontend calls.
-I've also implemented a environment variable to be set for the frontend so it can call the API no matter what URL it has.
+To make it easier for the frontend and backend to communicate (especially on the same device),
+I've enabled CORS for the backend to allow calls from configured origins.
+I've also implemented an environment variable for the frontend (VITE_API_URL) so it can call the API regardless of the
+backend URL.
 
 ### Frontend
 
 React + Vite + React Query for server state; environment variable VITE_API_URL is used to point at the backend.
-
 
 ## Acknowledgements
 

@@ -8,7 +8,7 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AProgram_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FSourcesCache_003Fd4fd9eaa33d964b75f812ccbe33f4bf158a5dcbc2c08c95e5e8deec18bec4ee_003FProgram_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/dotCover/Editor/HighlightingSourceSnapshotLocation/@EntryValue">/home/kendricks/.cache/JetBrains/Rider2025.2/resharper-host/temp/Rider/vAny/CoverageData/_SimplerBookLIbraryApplication.1990195322/Snapshot/snapshot.utdcvr</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7ce84f90_002D6ae2_002D4e9e_002D860e_002Deb90f45871f3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Junie Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;Project Location="/home/kendricks/RiderProjects/SimplerBookLIbraryApplication/Backend" Presentation="&amp;lt;Backend&amp;gt;" /&gt;
+  &lt;Solution /&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=939cef9b_002D8362_002D4bab_002D8857_002D0e24f6bcecf8/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="GetAllBooks_ReturnsAllBooks" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
