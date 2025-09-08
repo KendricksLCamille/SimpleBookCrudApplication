@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function NavBar() {
   return (
     <nav style={{
@@ -10,9 +12,9 @@ export default function NavBar() {
     }}>
       <div style={{display: 'flex', gap: 12, alignItems: 'center'}}>
         <span style={{fontWeight: 700}}>Simple Book Library</span>
-        <a href="#/browse" aria-label="Browse Books">Browse</a>
-        <a href="#/create" aria-label="Create Book">Create</a>
-        <a href="#/stats" aria-label="Statistics">Statistics</a>
+        <Link to="/browse" aria-label="Browse Books">Browse</Link>
+        <Link to="/create" aria-label="Create Book">Create</Link>
+        <Link to="/stats" aria-label="Statistics">Statistics</Link>
       </div>
     </nav>
   );

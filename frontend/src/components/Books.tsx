@@ -1,157 +1,165 @@
-import {API_URL, type Book, type State} from "../types.tsx";
+import {API_URL, type Book} from "../types.tsx";
 import * as React from 'react'
-import {useEffect, useState} from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import Skeleton from './ui/Skeleton'
 
-const defaultBook: Book = {
-    id: '',
-    title: '',
-    author: '',
-    genre: '',
-    publishedDate: '',
-    rating: 0,
-}
+const schema = z.object({
+    id: z.string().uuid().optional(),
+    title: z.string().min(1, 'Title is required').max(200),
+    author: z.string().min(1, 'Author is required').max(200),
+    genre: z.string().min(1, 'Genre is required').max(100),
+    publishedDate: z.string().refine(v => !Number.isNaN(Date.parse(v)), 'Valid date required'),
+    rating: z.coerce.number().int().min(1).max(5),
+});
 
-async function createBook(book: Book): Promise<Headers> {
-    book.id = "00000000-0000-0000-0000-000000000000"; // Empty guid for new book
-    // Simulate a POST request
-    const response = await fetch(`${API_URL}/api/books`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(book),
-    });
-    if (!response.ok) throw new Error(`Failed to create book: ${response.status}`);
-    return response.headers;
-}
+type FormValues = z.infer<typeof schema>;
 
-async function updateBook(book: Book): Promise<void> {
-    // Simulate a PUT request
-    const response = await fetch(`${API_URL}/api/books/${book.id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(book),
-    });
-    if (!response.ok) throw new Error(`Failed to update book: ${response.status}`);
-}
+export default function Books() {
+    const navigate = useNavigate();
+    const params = useParams();
+    const isCreate = !params.id;
+    const queryClient = useQueryClient();
 
-// Get a single book by ID
-async function getBookById(id: string): Promise<Book | null> {
-    const response = await fetch(`${API_URL}/api/books/${id}`);
-    if (!response.ok) return null;
-    return await response.json();
-}
-
-export default function Books({state, setState}: Readonly<{
-    state: Exclude<State, 'browse' | 'stats'>;
-    setState: React.Dispatch<React.SetStateAction<State>>
-}>) {
-    // Controlled form state for creating/editing
-    const [form, setForm] = useState<Book>(defaultBook);
-    const [isCreate, setIsCreate] = useState(state === 'create');
-
-    // Do not throw here; just handle modes below
-
-    useEffect(() => {
-        if (state === 'create') {
-            // Entering create mode: ensure clean form and correct flag
-            setIsCreate(true);
-            // Default publishedDate to today in YYYY-MM-DD format
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-            setForm({ ...defaultBook, publishedDate: todayStr });
-            return;
+    const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            title: '',
+            author: '',
+            genre: '',
+            publishedDate: new Date().toISOString().slice(0,10),
+            rating: 1,
         }
+    });
 
-        // Edit mode: fetch book by id
-        getBookById(state.id).then(book => {
-            if (book) {
-                setIsCreate(false);
-                setForm(book);
-            } else {
-                // If not found, switch to create mode
-                setIsCreate(true);
-                setForm(defaultBook);
-            }
-        });
-    }, [state])
+    const { isLoading } = useQuery({
+        enabled: !isCreate,
+        queryKey: ['book', params.id],
+        queryFn: async () => {
+            const r = await fetch(`${API_URL}/api/books/${params.id}`);
+            if (!r.ok) throw new Error('Failed to load book');
+            const json = await r.json() as Book;
+            // populate form
+            setValue('id', json.id);
+            setValue('title', json.title);
+            setValue('author', json.author);
+            setValue('genre', json.genre);
+            setValue('publishedDate', json.publishedDate.slice(0,10));
+            setValue('rating', Math.round(json.rating));
+            return json;
+        }
+    });
 
-    function handleChange<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-        setForm(prev => ({...prev, [key]: value}));
+    const createMut = useMutation({
+        mutationFn: async (data: FormValues) => {
+            const payload: Book = {
+                id: '00000000-0000-0000-0000-000000000000',
+                title: data.title,
+                author: data.author,
+                genre: data.genre,
+                publishedDate: data.publishedDate,
+                rating: data.rating,
+            };
+            const resp = await fetch(`${API_URL}/api/books`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            if (!resp.ok) throw new Error('Create failed');
+            return resp.headers;
+        },
+        onSuccess: () => {
+            toast.success('Book created');
+            queryClient.invalidateQueries({ queryKey: ['books'] });
+            navigate('/browse');
+        },
+        onError: (e: unknown) => toast.error(String(e))
+    });
+
+    const updateMut = useMutation({
+        mutationFn: async (data: FormValues) => {
+            const payload: Book = {
+                id: data.id!,
+                title: data.title,
+                author: data.author,
+                genre: data.genre,
+                publishedDate: data.publishedDate,
+                rating: data.rating,
+            };
+            const resp = await fetch(`${API_URL}/api/books/${payload.id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            if (!resp.ok) throw new Error('Update failed');
+        },
+        onSuccess: () => {
+            toast.success('Book updated');
+            queryClient.invalidateQueries({ queryKey: ['books'] });
+            navigate('/browse');
+        },
+        onError: (e: unknown) => toast.error(String(e))
+    });
+
+    const onSubmit = (data: FormValues) => {
+        if (isCreate) createMut.mutate(data); else updateMut.mutate(data);
+    };
+
+    if (!isCreate && isLoading) {
+        return (
+            <div style={{maxWidth: 640, margin: '1rem auto', padding: '1rem'}}>
+                <Skeleton height={24} width={200} />
+                <div style={{display:'grid', gap:8, marginTop: 12}}>
+                    <Skeleton height={32} />
+                    <Skeleton height={32} />
+                    <Skeleton height={32} />
+                </div>
+            </div>
+        );
     }
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (!isCreate) {
-            updateBook(form).then(
-                () => {
-                    alert('Book updated successfully');
-                    alert(`Updated book ${form.id}`);
-                },
-                () => alert('Failed to update book. Please try again later.')
-            ).then(() => setState('browse'));
-        } else {
-            createBook(form).then(
-                () => alert(`Created new book ${form.title} by ${form.author}`),
-                () => alert('Failed to create new book. Please try again later.')
-            ).then(() => setState('browse'));
-        }
-    }
-
-    // In browse mode, render nothing (Books panel is hidden)
-    if (state === null) return <p>This is an impossible state</p>;
     return (
         <div style={{maxWidth: 640, margin: '1rem auto', padding: '1rem', border: '1px solid #ddd', borderRadius: 8}}>
-            <form onSubmit={handleSubmit}>
+            <h2 tabIndex={-1} aria-live="polite">{isCreate ? 'Create Book' : 'Edit Book'}</h2>
+            <form onSubmit={handleSubmit(onSubmit)}>
                 <div style={{display: 'grid', gap: 12}}>
-                    {/* Use a two-column grid within each label to avoid ambiguous spacing before inputs */}
-                    <label
-                        style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
+                    <label style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
                         <span>Title:</span>
-                        <input type="text" value={form.title} onChange={e => handleChange('title', e.target.value)}
-                               required/>
+                        <input aria-invalid={!!errors.title} aria-describedby="title-err" type="text" {...register('title')} required />
                     </label>
+                    {errors.title && <span id="title-err" role="alert" style={{color:'crimson'}}>{errors.title.message}</span>}
 
-                    <label
-                        style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
+                    <label style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
                         <span>Author:</span>
-                        <input type="text" value={form.author} onChange={e => handleChange('author', e.target.value)}
-                               required/>
+                        <input aria-invalid={!!errors.author} aria-describedby="author-err" type="text" {...register('author')} required />
                     </label>
+                    {errors.author && <span id="author-err" role="alert" style={{color:'crimson'}}>{errors.author.message}</span>}
 
-                    <label
-                        style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
+                    <label style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
                         <span>Genre:</span>
-                        <input type="text" value={form.genre} onChange={e => handleChange('genre', e.target.value)}
-                               required/>
+                        <input aria-invalid={!!errors.genre} aria-describedby="genre-err" type="text" {...register('genre')} required />
                     </label>
+                    {errors.genre && <span id="genre-err" role="alert" style={{color:'crimson'}}>{errors.genre.message}</span>}
 
-                    <label
-                        style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
+                    <label style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
                         <span>Published Date:</span>
-                        <input type="date" value={form.publishedDate}
-                               onChange={e => handleChange('publishedDate', e.target.value)} required/>
+                        <input aria-invalid={!!errors.publishedDate} aria-describedby="date-err" type="date" {...register('publishedDate')} required />
                     </label>
+                    {errors.publishedDate && <span id="date-err" role="alert" style={{color:'crimson'}}>{errors.publishedDate.message}</span>}
 
-                    <label
-                        style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
+                    <label style={{display: 'grid', gridTemplateColumns: 'auto 1fr', alignItems: 'center', columnGap: 8}}>
                         <span>Rating:</span>
-                        <input type="number" min={1} max={5} step={1} value={form.rating}
-                               onChange={e => handleChange('rating', Number(e.target.value))} required
-                               style={{width: 80}}/>
+                        <input aria-invalid={!!errors.rating} aria-describedby="rating-err" type="number" min={1} max={5} step={1} {...register('rating', { valueAsNumber: true })} required style={{width: 80}} />
                     </label>
+                    {errors.rating && <span id="rating-err" role="alert" style={{color:'crimson'}}>{errors.rating.message}</span>}
                 </div>
                 <div style={{marginTop: 16}}>
-                    <button type="submit">{!isCreate ? 'Update Book' : 'Create Book'}</button>
+                    <button type="submit" aria-label={isCreate ? 'Create Book' : 'Update Book'}>
+                        {isCreate ? 'Create Book' : 'Update Book'}
+                    </button>
+                    <button type="button" onClick={() => navigate('/browse')} style={{marginLeft: 8}}>Cancel</button>
                 </div>
             </form>
-
-            <hr style={{margin: '1.5rem 0'}}/>
         </div>
     );
 }

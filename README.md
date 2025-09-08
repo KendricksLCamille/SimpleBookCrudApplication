@@ -76,6 +76,28 @@ CORS
 - Start the frontend next (npm run dev in frontend/).
 - Ensure the frontend URL (default http://localhost:5173) matches the backend CORS configuration.
 
+## One-command Dev Scripts
+To automatically start both the backend and frontend and link them together (no manual setup), use one of the scripts in scripts/:
+
+- Bash (Linux/Mac):
+  - chmod +x scripts/dev.sh
+  - ./scripts/dev.sh
+- PowerShell (Windows):
+  - pwsh scripts/dev.ps1
+  - Optional: pass a different backend URL: pwsh scripts/dev.ps1 -BackendUrl http://localhost:6000
+- Python 3 (cross-platform):
+  - python3 scripts/dev.py
+- Node.js (cross-platform):
+  - node scripts/dev.mjs
+
+Notes:
+- The scripts automatically:
+  - restore .NET dependencies (dotnet restore) and install frontend deps (npm ci/install on first run),
+  - start the backend on http://localhost:5152 (hot reload) and the frontend dev server,
+  - set VITE_API_URL for the frontend, pointing at the backend URL.
+- To override the backend URL, set env BACKEND_URL (for dev.sh/dev.py/dev.mjs), or pass -BackendUrl in dev.ps1.
+- Logs are written under untitled/backend.log and untitled/frontend.log.
+
 ## Running Full Stack
 - Start the backend on a some service and compy its url
 - Update the frontends VITE_API_URL then start up the front end.

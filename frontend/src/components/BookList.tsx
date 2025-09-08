@@ -1,6 +1,8 @@
 import {API_URL, type Book, type State} from "../types.tsx";
-import {useEffect, useState} from 'react'
 import * as React from "react";
+import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
+import Skeleton from './ui/Skeleton'
 
 export default function BookList(props: Readonly<{ setState: React.Dispatch<React.SetStateAction<State>> }> | ((s: {
     id: string
@@ -17,7 +19,17 @@ export default function BookList(props: Readonly<{ setState: React.Dispatch<Reac
         })
     }, [])
 
-    if (!books) return <p>Loading...</p>;
+    if (!books) return (
+        <div role="status" aria-live="polite" style={{padding: 8}}>
+            <p>Loading...</p>
+            <div style={{display:'grid', gap:8}}>
+                <Skeleton height={24} width={200} />
+                <Skeleton height={16} />
+                <Skeleton height={16} />
+                <Skeleton height={16} />
+            </div>
+        </div>
+    );
 
     return (
         <>
@@ -32,6 +44,8 @@ export default function BookList(props: Readonly<{ setState: React.Dispatch<Reac
                             if (toTitleCase.includes('ate')) toTitleCase = "Published Date";
 
                             return <th key={property}
+                                       tabIndex={0}
+                                       onKeyDown={(e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); setBooks(sortBooks(books, property)); } }}
                                        onClick={() => setBooks(sortBooks(books, property))}>{toTitleCase}</th>
                         })}
                         <th>Actions</th>
@@ -65,12 +79,13 @@ export default function BookList(props: Readonly<{ setState: React.Dispatch<Reac
                                             if (ok) {
                                                 // Optimistically update the list without refetching to avoid extra network call
                                                 setBooks(prev => prev ? prev.filter(b => b.id !== book.id) : prev);
+                                                toast.success('Book deleted');
                                             } else {
-                                                alert('Failed to delete book');
+                                                toast.error('Failed to delete book');
                                             }
                                         } catch (err) {
                                             console.error(err);
-                                            alert('Failed to delete book');
+                                            toast.error('Failed to delete book');
                                         }
                                     }}
                                 >
