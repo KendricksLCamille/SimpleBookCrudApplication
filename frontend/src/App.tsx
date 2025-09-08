@@ -25,7 +25,7 @@ function stateToHash(state: State): string {
     if (state === 'browse') return '#/browse';
     if (state === 'create') return '#/create';
     if (state === 'stats') return '#/stats';
-    if (typeof state === 'object' && state && 'id' in state) return `#/edit/${(state as Exclude<State, 'browse' | 'create' | 'stats'>).id}`;
+    if (typeof state === 'object' && state && 'id' in state) return `#/edit/${(state).id}`;
     return '#/browse';
 }
 
