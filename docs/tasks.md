@@ -11,7 +11,7 @@ Note: Each item is actionable and intended to be checked off as work progresses.
 
 Backend architecture and API
 7. [x] Move EF Core DbContext registration to DI: register BookContext via AddDbContext with scoped lifetime rather than manual `new BookContext()` in endpoints.
-8. [ ] Extract endpoints to a dedicated minimal API module (e.g., static class with MapGroup "/api/books") to reduce Program.cs size and improve testability.
+8. [x] Extract endpoints to a dedicated minimal API module (e.g., static class with MapGroup "/api/books") to reduce Program.cs size and improve testability.
 9. [ ] Introduce request/response DTOs for Book create/update/read to decouple API from internal entity and control surface (e.g., omit Id on create).
 10. [ ] Add FluentValidation or model validation filters for declarative validation instead of manual `IsNotValidBook` calls.
 11. [ ] Implement centralized error handling middleware to provide consistent problem details (RFC 7807) responses.

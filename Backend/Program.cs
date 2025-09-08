@@ -1,4 +1,5 @@
 using Backend;
+using Backend.Endpoints;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,67 +43,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("ConfiguredCorsPolicy");
 
-
-app.MapGet("/api/books", async (BookContext db) => { return await db.Books.ToListAsync(); }).WithName("GetAllBooks")
-    .WithTags("Books")
-    .WithSummary("List all books")
-    .WithDescription("Returns the full list of books.")
-    .Produces<List<Book>>(StatusCodes.Status200OK, contentType: "application/json");
-
-app.MapGet("/api/books/{id:guid}", async (Guid id, BookContext db) =>
-    {
-        var book = await db.Books.FindAsync(id);
-        return book != null ? Results.Ok(book) : Results.NotFound();
-    }).WithName("GetBook")
-    .WithTags("Books")
-    .WithSummary("Get a book by ID")
-    .WithDescription("Returns a single book when it exists; 404 when not found.")
-    .Produces<Book>(StatusCodes.Status200OK, contentType: "application/json")
-    .Produces(StatusCodes.Status404NotFound);
-
-app.MapPost("/api/books", async (Book book, BookContext db) =>
-    {
-        if (book.IsNotValidBook(out var validationResult)) return Results.BadRequest(validationResult);
-        book.Id = Guid.NewGuid(); // Generate a new ID for the book.
-        db.Books.Add(book);
-        await db.SaveChangesAsync();
-        return Results.Created("/api/books/" + book.Id, book);
-    }).WithName("AddBook")
-    .WithTags("Books")
-    .WithSummary("Create a new book")
-    .WithDescription("Creates a new book and returns it with Location header pointing to the new resource.")
-    .Accepts<Book>("application/json")
-    .Produces<Book>(StatusCodes.Status201Created, contentType: "application/json")
-    .Produces(StatusCodes.Status400BadRequest);
-
-app.MapPut("/api/books/{id:guid}", async (Guid id, Book book, BookContext db) =>
-    {
-        if (book.IsNotValidBook(out var validationResult)) return Results.BadRequest(validationResult);
-        book.Id = id; // Update the ID of the book.
-        db.Entry(book).State = EntityState.Modified;
-        await db.SaveChangesAsync();
-        return Results.NoContent();
-    }).WithName("UpdateBook")
-    .WithTags("Books")
-    .WithDescription("Updates an existing book by ID")
-    .Produces(StatusCodes.Status400BadRequest)
-    .Produces<Book>(StatusCodes.Status204NoContent);
-
-app.MapDelete("/api/books/{id:guid}", async (Guid id, BookContext db) =>
-{
-    var book = await db.Books.FindAsync(id);
-    if (book == null) return Results.NoContent();
-    db.Books.Remove(book);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-}).WithName("DeleteBook").WithTags("Books").WithDescription("Delete a book by ID");
-
-app.MapGet("/api/books/stats", async (BookContext db) =>
-    {
-        var genreToBooksCount = await db.Books.GroupBy(b => b.Genre).ToDictionaryAsync(g => g.Key, g => g.Count());
-        return genreToBooksCount;
-    }).WithName("GetBooksStats").WithTags("Books").WithDescription("Get the count of books by genre")
-    .Produces<Dictionary<string, int>>();
+app.MapBooksApi();
 
 // Ensure the database and optionally seed
 using (var scope = app.Services.CreateScope())
