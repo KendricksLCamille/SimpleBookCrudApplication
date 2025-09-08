@@ -12,7 +12,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? Array.Empty<string>();
+    .Get<string[]>() ?? [];
 
 // Database connection string from configuration
 var connectionString = builder.Configuration.GetConnectionString("Default")

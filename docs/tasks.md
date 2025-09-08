@@ -10,7 +10,7 @@ Note: Each item is actionable and intended to be checked off as work progresses.
 6. [ ] Set up basic CI (e.g., GitHub Actions) to build backend (net9.0) and run tests; build frontend and run unit tests/lint.
 
 Backend architecture and API
-7. [ ] Move EF Core DbContext registration to DI: register BookContext via AddDbContext with scoped lifetime rather than manual `new BookContext()` in endpoints.
+7. [x] Move EF Core DbContext registration to DI: register BookContext via AddDbContext with scoped lifetime rather than manual `new BookContext()` in endpoints.
 8. [ ] Extract endpoints to a dedicated minimal API module (e.g., static class with MapGroup "/api/books") to reduce Program.cs size and improve testability.
 9. [ ] Introduce request/response DTOs for Book create/update/read to decouple API from internal entity and control surface (e.g., omit Id on create).
 10. [ ] Add FluentValidation or model validation filters for declarative validation instead of manual `IsNotValidBook` calls.
