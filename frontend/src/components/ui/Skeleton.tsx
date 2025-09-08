@@ -1,12 +1,10 @@
-import React from 'react'
-
 type Props = {
   width?: number | string
   height?: number | string
   radius?: number
 }
 
-export default function Skeleton({ width = '100%', height = 12, radius = 6 }: Props) {
+export default function Skeleton({ width = '100%', height = 12, radius = 6 }: Readonly<Props>) {
   return (
     <div
       aria-hidden
